@@ -67,8 +67,29 @@ class PaystackClient:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            error_body = json.loads(exc.read().decode("utf-8"))
+            raw = exc.read()
+            content_type = exc.headers.get("Content-Type", "") if exc.headers else ""
+            try:
+                error_body = json.loads(raw.decode("utf-8")) if raw else {}
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                # Paystack (or something in front of it — a proxy, a WAF,
+                # a captive portal) returned a non-JSON or empty error
+                # body. Surface everything we have rather than crashing
+                # blind — this is exactly the failure mode this connector
+                # exists to report honestly instead of hiding.
+                error_body = {
+                    "message": (
+                        f"non-JSON error response (status {exc.code}, "
+                        f"content-type '{content_type}'): "
+                        f"{raw[:500]!r}" if raw else "(empty response body)"
+                    )
+                }
             raise PaystackError(exc.code, error_body) from exc
+        except urllib.error.URLError as exc:
+            # DNS failure, connection refused, TLS error, no route, etc. —
+            # never reached the server at all. Different failure class
+            # from an HTTP error response, and worth distinguishing.
+            raise PaystackError(0, {"message": f"could not reach Paystack: {exc.reason}"}) from exc
 
     # ---- Transactions ----
 
