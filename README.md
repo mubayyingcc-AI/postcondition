@@ -42,8 +42,14 @@ implements the last two.
 | **BIND** | Canonicalize the action and bind it to the policy decision | not yet |
 | **COMMIT** | Idempotent/conditional execution against the real system | not yet |
 | **CONFIRM** | Authoritative post-state read | not yet |
-| **CHECK** | Postcondition + conflict verification | ✅ `pcheck verify` |
+| **CHECK** | Postcondition + conflict verification | ✅ `pcheck verify`, ✅ `connectors/paystack_refund.py` |
 | **SEAL** | Sign the receipt | ✅ `pcheck seal` |
+
+The Paystack connector (`connectors/`) implements INTAKE through CHECK
+end-to-end for one action type (refunds) against one system. See
+`connectors/README.md` for how to run it against a real test account —
+it needs a live Paystack key, which this repo obviously doesn't ship
+with.
 
 ## Quickstart
 
@@ -118,9 +124,13 @@ worked examples.
 
 ## Roadmap
 
-1. **Stripe test-mode refund connector** (`COMMIT`/`CONFIRM`/`CHECK`
-   against a real, sandboxed system) — the first thing that needs a
-   real external relationship rather than a laptop.
+1. **Paystack test-mode refund connector** — `connectors/`. First
+   connector, chosen over Stripe because Stripe does not support
+   opening a merchant account from Nigeria (Paystack is Stripe's own
+   African payments infrastructure, acquired 2020, run as a separate
+   product). Logic is built and unit-tested against a fake client
+   (`tests/test_paystack_connector.py`); the live run against a real
+   Paystack test account is the next step — see `connectors/README.md`.
 2. **Cross-format ingestion** — accept and verify receipts from other
    published formats (ActionProof, AGA) alongside our own, so a buyer
    isn't locked into one signer's schema to get independent
