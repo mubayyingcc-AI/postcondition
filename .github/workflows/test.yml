@@ -1,0 +1,53 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install cryptography
+
+      - name: Run adversarial test suite
+        run: python -m unittest tests.test_verify -v
+
+      - name: Run end-to-end example
+        run: python examples/issue_and_verify.py
+
+      - name: Verify all fixtures behave as documented
+        run: |
+          set -e
+          PUB=$(cat fixtures/demo_public_key.txt)
+
+          echo "valid_receipt.json must verify true"
+          python -m pcheck.cli verify fixtures/valid_receipt.json --pubkey "$PUB"
+
+          echo "tampered_receipt.json must verify false"
+          if python -m pcheck.cli verify fixtures/tampered_receipt.json --pubkey "$PUB"; then
+            echo "FAIL: tampered receipt verified as valid" && exit 1
+          fi
+
+          echo "stale_receipt.json must still verify true (signature is valid; staleness is informational, checked via inspect)"
+          python -m pcheck.cli verify fixtures/stale_receipt.json --pubkey "$PUB"
+
+          echo "unknown_outcome_receipt.json must verify true (a genuine, correctly-signed UNKNOWN_OUTCOME)"
+          python -m pcheck.cli verify fixtures/unknown_outcome_receipt.json --pubkey "$PUB"
+
+      - name: Smoke-test MCP server responds to tools/list
+        run: |
+          RESPONSE=$(echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | timeout 5 python -m mcp_server.server)
+          echo "$RESPONSE" | grep -q "verify_postcondition_receipt" || (echo "FAIL: MCP server did not advertise the tool" && exit 1)
+          echo "OK: $RESPONSE"

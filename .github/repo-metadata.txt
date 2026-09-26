@@ -1,0 +1,7 @@
+# Repo metadata (not consumed by any tool — reference for `gh repo edit`)
+
+Description:
+Verify what actually happened after an AI agent action, not just what it claimed.
+
+Suggested topics:
+ai-agents, agent-security, verification, ed25519, mcp, receipts, audit
