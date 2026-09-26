@@ -1,0 +1,38 @@
+{
+  "receipt_version": "1.0",
+  "receipt_id": "pcr_01HN8X9K2M3P4Q5R6S7T8U9V0W",
+  "tenant_id": "acme-fintech",
+  "connector_id": "stripe-refunds-test",
+  "connector_version": "0.1.0",
+  "actor_identity": "user:jane@acme.com",
+  "agent_identity": "agent:support-bot-v3",
+  "action_type": "refund",
+  "canonical_action_digest": "sha256:3b1c9d7e2a4f5601c8b9e0d1a2f3c4b5d6e7f8091a2b3c4d5e6f7081920a3b4c",
+  "policy_id": "refund-under-100-autoapprove",
+  "policy_version": "2026-09-01",
+  "invariant_result": "PASS",
+  "pre_state_commitment": "sha256:aa11bb22cc33dd44ee55ff66007788990011223344556677889900aabbccdd",
+  "pre_state_version": "ch_3PabcXYZ:v7",
+  "idempotency_key": "idem_9f8e7d6c5b4a3928",
+  "provider_operation_id": "re_3PabcXYZ001",
+  "post_state_commitment": "sha256:bb22cc33dd44ee55ff66007788990011223344556677889900aabbccddee11",
+  "post_state_version": "ch_3PabcXYZ:v8",
+  "postcondition_result": "PASS",
+  "freshness_bound_seconds": 30,
+  "issued_at": "2026-09-26T14:03:11Z",
+  "scope_of_claim": {
+    "asserts": [
+      "Stripe confirmed refund re_3PabcXYZ001 applied to charge ch_3PabcXYZ",
+      "policy refund-under-100-autoapprove evaluated PASS before execution",
+      "post-state read occurred within 30s of pre-state read (freshness_bound_seconds)"
+    ],
+    "does_not_assert": [
+      "that the customer was notified",
+      "that no other refund exists on this charge outside this receipt window",
+      "that the policy itself was correctly configured"
+    ]
+  },
+  "status": "EXECUTED_AND_VERIFIED",
+  "signer_key_id": "postcondition-labs-demo-key-1",
+  "signature": "J2L0xbMqfB/bjOKbQ98qR7U+xNQLg0kT1P8sn77D7ygnoHbR2Lu7r7zGxkFfINipiEhpCmYVksod28Akcj5RBA=="
+}
