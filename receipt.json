@@ -1,0 +1,35 @@
+{
+  "receipt_version": "1.0",
+  "receipt_id": "pcr_e5e1105b07bd4816b7c817ffebdce81d",
+  "tenant_id": "self-serve-demo",
+  "connector_id": "paystack-refunds-test",
+  "connector_version": "0.1.0",
+  "action_type": "refund",
+  "canonical_action_digest": "sha256:fbed318aa17b65a145116d9f0770da5951d9c41dfd2d40197780b4c8b56e1e93",
+  "policy_id": "manual-test-run",
+  "invariant_result": "PASS",
+  "pre_state_commitment": "sha256:f09abd1e40957065a1cd727b8a9d94c07c7ed1bac28991042671738a0fcc83b6",
+  "pre_state_version": "success",
+  "idempotency_key": null,
+  "provider_operation_id": 18443530,
+  "post_state_commitment": "sha256:e891357a7e7eb26f0bf0ff140d6409a1b8d79302299b51f2e02c8b2caa751284",
+  "post_state_version": "reversal-pending",
+  "postcondition_result": "UNKNOWN",
+  "freshness_bound_seconds": 30,
+  "issued_at": "2026-09-27T05:44:04Z",
+  "scope_of_claim": {
+    "asserts": [
+      "Paystack transaction T229827652905019 was at status 'success' before refund submission",
+      "refund submitted new refund: refund id 18443530, final status 'pending'",
+      "post-state read occurred within 30s of pre-state read"
+    ],
+    "does_not_assert": [
+      "that the customer was notified of the refund",
+      "that this was the only refund ever issued on this transaction outside this connector's visibility",
+      "that Paystack's own refund-processing bank rails settled synchronously"
+    ]
+  },
+  "status": "UNKNOWN_OUTCOME",
+  "signer_key_id": "paystack-connector-demo-key",
+  "signature": "EMWstMxTp8kBCEQ0patVZPPHpVWOpBtewjIzljmWm4luxgszAaH1/7ySrpNE47lKMWfM/uTuwU/nWmJmlrVTBQ=="
+}

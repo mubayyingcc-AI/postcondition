@@ -41,6 +41,17 @@ CONNECTOR_VERSION = "0.1.0"
 # Refund states Paystack documents: pending, processing, processed, failed
 # (and the docs mention a "needs attention" case surfaced via a dedicated
 # test card). We map these onto our seven receipt states below.
+# A transaction that was ever successfully charged can carry a refund.
+# Paystack moves a charged transaction's own status away from "success"
+# once a refund is *in progress* against it (confirmed live: it becomes
+# "reversal-pending"), and presumably "reversed" once complete — neither
+# of those means "never chargeable," which is what we actually want to
+# reject. Kept as an explicit set, not a != check, because "anything
+# that isn't literally 'success'" was the bug: it conflated "never
+# succeeded" with "succeeded, and a refund already exists," which are
+# opposite situations.
+REFUNDABLE_PRE_STATES = {"success", "reversal-pending", "reversal pending", "reversed"}
+
 TERMINAL_SUCCESS = {"processed"}
 TERMINAL_FAILURE = {"failed"}
 NEEDS_ATTENTION = {"needs-attention", "needs_attention"}
@@ -59,7 +70,7 @@ def run(reference: str, amount_kobo: int | None, client: PaystackClient, private
     pre_data = pre_state.get("data", {})
     pre_commitment = _digest(pre_data)
 
-    if pre_data.get("status") != "success":
+    if pre_data.get("status") not in REFUNDABLE_PRE_STATES:
         # REJECTED_BY_POLICY isn't quite right here — this is closer to
         # "the precondition for refunding was never met" — but we stay
         # inside the seven declared states rather than inventing an
@@ -74,7 +85,7 @@ def run(reference: str, amount_kobo: int | None, client: PaystackClient, private
             refund_data=None,
             private_key=private_key,
             signer_key_id=signer_key_id,
-            asserts=[f"transaction {reference} status was '{pre_data.get('status')}', not 'success', at pre-state read"],
+            asserts=[f"transaction {reference} status was '{pre_data.get('status')}', which is not in the refundable set {sorted(REFUNDABLE_PRE_STATES)}, at pre-state read"],
             does_not_assert=["that a refund was attempted"],
         )
 

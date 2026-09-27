@@ -55,6 +55,23 @@ class TestPaystackConnector(unittest.TestCase):
         self.assertEqual(client.create_refund_calls, 0)
         self.assertTrue(verify_receipt(receipt, pub).valid)
 
+    def test_transaction_already_under_reversal_still_proceeds(self):
+        """Regression test for a real bug caught on the first live run:
+        Paystack moves a charged transaction's status away from 'success'
+        to 'reversal-pending' once a refund is already in progress against
+        it. That must NOT be rejected as 'never chargeable' — it should
+        flow through to the idempotency guard, which finds the existing
+        refund and reuses it."""
+        priv, pub = _keys()
+        client = FakeClient(
+            transaction_data={"status": "reversal-pending"},
+            existing_refunds=[{"id": "rfd_inflight", "status": "processed"}],
+        )
+        receipt = run("ref_1b", None, client, priv, "test-key")
+        self.assertNotEqual(receipt["status"], "REJECTED_BY_POLICY")
+        self.assertEqual(client.create_refund_calls, 0)
+        self.assertEqual(receipt["provider_operation_id"], "rfd_inflight")
+
     def test_successful_refund_maps_to_executed_and_verified(self):
         priv, pub = _keys()
         client = FakeClient(

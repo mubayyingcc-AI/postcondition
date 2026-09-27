@@ -1,0 +1,31 @@
+{
+  "receipt_version": "1.0",
+  "receipt_id": "pcr_65d60890cbb442efb9eb921a837da1ec",
+  "tenant_id": "self-serve-demo",
+  "connector_id": "paystack-refunds-test",
+  "connector_version": "0.1.0",
+  "action_type": "refund",
+  "canonical_action_digest": "sha256:fbed318aa17b65a145116d9f0770da5951d9c41dfd2d40197780b4c8b56e1e93",
+  "policy_id": "manual-test-run",
+  "invariant_result": "PASS",
+  "pre_state_commitment": "sha256:e891357a7e7eb26f0bf0ff140d6409a1b8d79302299b51f2e02c8b2caa751284",
+  "pre_state_version": "reversal-pending",
+  "idempotency_key": null,
+  "provider_operation_id": null,
+  "post_state_commitment": null,
+  "post_state_version": null,
+  "postcondition_result": "FAIL",
+  "freshness_bound_seconds": 30,
+  "issued_at": "2026-09-27T05:46:07Z",
+  "scope_of_claim": {
+    "asserts": [
+      "transaction T229827652905019 status was 'reversal-pending', not 'success', at pre-state read"
+    ],
+    "does_not_assert": [
+      "that a refund was attempted"
+    ]
+  },
+  "status": "REJECTED_BY_POLICY",
+  "signer_key_id": "paystack-connector-demo-key",
+  "signature": "EQtobDuN+zeGLAhqCxRp8nyoXFcT/rbij2ROzZknsT24EYYmdvrlAOvTgjdh/6ra+HjkwNx5fxlMxF2EMmD4Cg=="
+}
