@@ -127,19 +127,19 @@ class PaystackClient:
 
     def list_refunds_for_transaction(self, reference: str) -> list[dict[str, Any]]:
         """Our own idempotency guard: list refunds and filter client-side by
-        transaction reference, since the query-param filter for this isn't
-        fully confirmed from documentation alone. Defensive by design —
-        worth double-checking against the live API response shape on first
-        real run."""
-        result = self._request("GET", "/refund", params={"transaction": reference})
+        transaction reference.
+
+        Confirmed against a real response (2026-09-27): each refund object
+        has `transaction` set to the transaction's *numeric ID* (e.g.
+        6599191638), NOT the reference string — and separately carries
+        `transaction_reference` (e.g. "T229827652905019"), which IS the
+        string we're given. The original assumption (that `transaction`
+        was either the reference itself or a dict containing one) was
+        wrong on both counts; this is what a live run against the real
+        API is for."""
+        result = self._request("GET", "/refund")
         refunds = result.get("data", [])
-        matching = []
-        for r in refunds:
-            txn = r.get("transaction")
-            txn_ref = txn.get("reference") if isinstance(txn, dict) else txn
-            if txn_ref == reference:
-                matching.append(r)
-        return matching
+        return [r for r in refunds if r.get("transaction_reference") == reference]
 
     def create_refund(self, reference: str, amount_kobo: Optional[int] = None) -> dict[str, Any]:
         body: dict[str, Any] = {"transaction": reference}
