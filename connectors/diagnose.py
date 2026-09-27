@@ -26,6 +26,8 @@ def main() -> int:
     req = urllib.request.Request(url, method="GET")
     req.add_header("Authorization", f"Bearer {secret_key}")
     req.add_header("Content-Type", "application/json")
+    req.add_header("Accept", "application/json")
+    req.add_header("User-Agent", "Postcondition-Connector/0.1.0 (+https://github.com/mubayyingcc-AI/postcondition)")
 
     print(f"GET {url}")
     print(f"Authorization: Bearer {secret_key[:12]}...{secret_key[-4:]}")
@@ -55,6 +57,13 @@ def main() -> int:
         print()
         if exc.code == 401:
             print("=> 401: the secret key is wrong, revoked, or a live/test mismatch.")
+        elif exc.code == 403 and b"error code: 1010" in raw:
+            print(
+                "=> Cloudflare error 1010: request blocked on client signature "
+                "(commonly Python's default urllib User-Agent). Should be fixed "
+                "already if you're running the current version of this script — "
+                "if you still see this, the User-Agent header isn't being sent."
+            )
         elif not raw:
             print(
                 "=> Got an HTTP error with a totally empty body — very likely something "

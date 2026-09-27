@@ -62,6 +62,24 @@ class PaystackClient:
         req = urllib.request.Request(url, data=data, method=method)
         req.add_header("Authorization", f"Bearer {self.secret_key}")
         req.add_header("Content-Type", "application/json")
+        req.add_header("Accept", "application/json")
+        # Python's default urllib User-Agent ("Python-urllib/3.x") is a
+        # known trigger for Cloudflare's Browser Integrity Check (error
+        # 1010) — Paystack's API sits behind Cloudflare. Self-identifying
+        # honestly (not spoofing a browser) is the correct fix, not a
+        # workaround to hide anything.
+        req.add_header("User-Agent", "Postcondition-Connector/0.1.0 (+https://github.com/mubayyingcc-AI/postcondition)")
+        req.add_header("Accept", "application/json")
+        # Paystack's API sits behind Cloudflare. Python's urllib default
+        # User-Agent ("Python-urllib/3.x") is a well-known bot signature
+        # that Cloudflare's Browser Integrity Check blocks outright
+        # (error 1010), regardless of a valid API key. Identifying
+        # ourselves properly isn't evading anything — it's just what a
+        # correctly-behaved API client does.
+        req.add_header(
+            "User-Agent",
+            "postcondition-connector/0.1.0 (+https://github.com/mubayyingcc-AI/postcondition)",
+        )
 
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
