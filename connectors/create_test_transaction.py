@@ -60,9 +60,13 @@ def main() -> int:
     print(f"reference: {data.get('reference')}")
     print(f"authorization_url: {data.get('authorization_url')}")
     print(
-        "\nOpen the authorization_url above, pay with test card "
-        "4084 0840 8408 4081 (CVV 408, any future expiry), then run:\n"
-        f"  python -m connectors.paystack_refund {data.get('reference')} --amount {amount_kobo}"
+        "\nOpen the authorization_url above and pay with one of Paystack's test cards "
+        "(see paystack.com/docs/payments/test-payments):\n"
+        "  success:          4084 0840 8408 4081  exp any future  CVV 408\n"
+        "  refund->needs attention: 4084 0800 0067 1902  exp 09/27  CVV 190\n"
+        "  refund->failed:   4084 0800 0067 1803  exp 09/27  CVV 180\n"
+        "Then run:\n"
+        f"  python -m connectors.paystack_refund {data.get('reference')} --out receipt.json"
     )
     return 0
 
