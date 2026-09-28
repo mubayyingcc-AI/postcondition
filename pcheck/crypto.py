@@ -42,6 +42,15 @@ def generate_keypair() -> tuple[str, str]:
     )
 
 
+def public_from_private(private_key_b64: str) -> str:
+    """Derive the base64 public key from a base64 raw Ed25519 private key."""
+    key = Ed25519PrivateKey.from_private_bytes(base64.b64decode(private_key_b64))
+    pub = key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
+    )
+    return base64.b64encode(pub).decode("ascii")
+
+
 def seal_receipt(
     receipt: dict[str, Any], private_key_b64: str, signer_key_id: str
 ) -> dict[str, Any]:

@@ -8,3 +8,6 @@ build/
 *.key
 .pytest_cache/
 receipt*.json
+
+.env
+*.db

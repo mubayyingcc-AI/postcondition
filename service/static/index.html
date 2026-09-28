@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Postcondition: did the agent's action actually happen?</title>
+<meta name="description" content="Signed receipts that record what the system of record actually confirmed after an AI agent acted, and what they do not prove.">
+<style>
+:root{
+  --paper:#F2F4F7; --panel:#FFFFFF; --ink:#14213D; --muted:#5B6673; --line:#D5DAE1;
+  --ok:#1B7A4B; --ok-bg:#E4F3EA; --bad:#B3261E; --bad-bg:#FBE9E7; --focus:#2D5BFF;
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--ink)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+header{padding:20px 0;border-bottom:1px solid var(--line)}
+header .wrap{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+.mark{font:700 1.25rem var(--serif);letter-spacing:.01em;text-decoration:none}
+nav a{margin-left:20px;font-size:.95rem}
+h1{font:700 clamp(2rem,5vw,3.4rem)/1.08 var(--serif);margin:48px 0 16px;max-width:16em}
+.lede{font-size:1.1rem;color:var(--muted);max-width:38em;margin:0 0 32px}
+.demo{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:820px){.demo{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px}
+label{display:block;font-weight:600;font-size:.9rem;margin-bottom:6px}
+textarea,input{width:100%;font:.8rem/1.45 var(--mono);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:10px;background:#FBFCFD}
+textarea{height:360px;resize:vertical}
+input{margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+button{font:600 .95rem var(--sans);border-radius:4px;padding:10px 16px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff}
+button.secondary{background:transparent;color:var(--ink)}
+button:hover{filter:brightness(1.15)}
+#result{min-height:220px}
+.verdict{border-radius:4px;padding:14px 16px;font:700 1.25rem var(--serif)}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)}
+.verdict.bad{background:var(--bad-bg);color:var(--bad)}
+.verdict.idle{background:var(--paper);color:var(--muted);font-weight:400;font-size:1rem;font-family:var(--sans)}
+.detail{margin:14px 0 0;font-size:.92rem}
+.detail dt{font-weight:600;margin-top:10px}
+.detail dd{margin:2px 0 0;color:var(--muted)}
+.detail ul{margin:4px 0 0;padding-left:1.1em}
+section{padding:48px 0 0}
+h2{font:700 1.6rem/1.2 var(--serif);margin:0 0 14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+.outcomes{margin:0;padding:0;list-style:none;font-size:.95rem}
+.outcomes li{padding:8px 0;border-top:1px solid var(--line)}
+.outcomes code{font:600 .8rem var(--mono)}
+.outcomes span{color:var(--muted)}
+.not li{margin-bottom:6px}
+footer{margin-top:64px;padding:24px 0 40px;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:12px;overflow-x:auto;font:.8rem/1.45 var(--mono)}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="mark" href="/">Postcondition</a>
+  <nav><a href="#outcomes">Outcomes</a><a href="#limits">Limits</a><a href="#api">API</a><a href="https://github.com/mubayyingcc-AI/postcondition">Source</a></nav>
+</div></header>
+
+<main class="wrap">
+  <h1>Did the agent's action actually happen?</h1>
+  <p class="lede">An agent can report success while the system of record says otherwise. A Postcondition receipt records what the system actually confirmed, and is signed so nobody can quietly edit it. The receipt below is real. Verify it, then change one field and verify again.</p>
+
+  <div class="demo">
+    <div class="panel">
+      <label for="receipt">Receipt (JSON)</label>
+      <textarea id="receipt" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="verify">Verify receipt</button>
+        <button id="tamper" class="secondary">Change one field</button>
+        <button id="reset" class="secondary">Restore sample</button>
+      </div>
+    </div>
+    <div class="panel">
+      <label for="pub">Public key of the signer (base64)</label>
+      <input id="pub" spellcheck="false">
+      <div id="result" aria-live="polite">
+        <div class="verdict idle">Press Verify receipt to check the signature.</div>
+      </div>
+    </div>
+  </div>
+
+  <section id="outcomes">
+    <h2>Seven outcomes, and one of them is "we don't know"</h2>
+    <ul class="outcomes">
+      <li><code>EXECUTED_AND_VERIFIED</code> <span>The system confirmed the expected result.</span></li>
+      <li><code>EXECUTED_BUT_POSTCONDITION_FAILED</code> <span>The action was submitted but the expected result did not hold.</span></li>
+      <li><code>COMPENSATION_REQUIRED</code> <span>Something partly applied and needs a corrective step.</span></li>
+      <li><code>CONFLICT_DETECTED</code> <span>Another writer changed the target in between.</span></li>
+      <li><code>REJECTED_BY_POLICY</code> <span>Never submitted; a check failed first.</span></li>
+      <li><code>ALLOWED_NOT_EXECUTED</code> <span>Permitted, but never submitted.</span></li>
+      <li><code>UNKNOWN_OUTCOME</code> <span>Submitted, but the result could not be established yet. Never reported as success or failure.</span></li>
+    </ul>
+    <p>First connector: refunds on Paystack, in test mode.</p>
+  </section>
+
+  <section id="limits" class="two">
+    <div>
+      <h2>What a receipt says</h2>
+      <p>That a specific policy was evaluated before the action, that the request was submitted, and what the system of record reported afterwards. Every receipt lists exactly what it asserts.</p>
+    </div>
+    <div>
+      <h2>What it does not say</h2>
+      <ul class="not">
+        <li>That the AI reasoned correctly.</li>
+        <li>That the policy itself was a good one.</li>
+        <li>That nothing else happened outside what was observed.</li>
+        <li>That a signature check today means the fact is still true today.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="api">
+    <h2>Verify from code</h2>
+<pre>curl -X POST /v1/verify \
+  -H "Content-Type: application/json" \
+  -d '{"receipt": {...}, "public_key": "base64..."}'</pre>
+    <p>Signing keys this server uses are listed at <a href="/v1/keys">/v1/keys</a>. The verifier is open source, so you can check receipts without trusting this site.</p>
+  </section>
+</main>
+
+<footer><div class="wrap">Postcondition is early. It has one connector and it has only been run against Paystack's test mode.</div></footer>
+
+<script id="sample" type="application/json">{"receipt": {"receipt_version": "1.0", "receipt_id": "pcr_01HN8X9K2M3P4Q5R6S7T8U9V0W", "tenant_id": "acme-fintech", "connector_id": "stripe-refunds-test", "connector_version": "0.1.0", "actor_identity": "user:jane@acme.com", "agent_identity": "agent:support-bot-v3", "action_type": "refund", "canonical_action_digest": "sha256:3b1c9d7e2a4f5601c8b9e0d1a2f3c4b5d6e7f8091a2b3c4d5e6f7081920a3b4c", "policy_id": "refund-under-100-autoapprove", "policy_version": "2026-09-01", "invariant_result": "PASS", "pre_state_commitment": "sha256:aa11bb22cc33dd44ee55ff66007788990011223344556677889900aabbccdd", "pre_state_version": "ch_3PabcXYZ:v7", "idempotency_key": "idem_9f8e7d6c5b4a3928", "provider_operation_id": "re_3PabcXYZ001", "post_state_commitment": "sha256:bb22cc33dd44ee55ff66007788990011223344556677889900aabbccddee11", "post_state_version": "ch_3PabcXYZ:v8", "postcondition_result": "PASS", "freshness_bound_seconds": 30, "issued_at": "2026-09-26T14:03:11Z", "scope_of_claim": {"asserts": ["Stripe confirmed refund re_3PabcXYZ001 applied to charge ch_3PabcXYZ", "policy refund-under-100-autoapprove evaluated PASS before execution", "post-state read occurred within 30s of pre-state read (freshness_bound_seconds)"], "does_not_assert": ["that the customer was notified", "that no other refund exists on this charge outside this receipt window", "that the policy itself was correctly configured"]}, "status": "EXECUTED_AND_VERIFIED", "signer_key_id": "postcondition-labs-demo-key-1", "signature": "J2L0xbMqfB/bjOKbQ98qR7U+xNQLg0kT1P8sn77D7ygnoHbR2Lu7r7zGxkFfINipiEhpCmYVksod28Akcj5RBA=="}, "public_key": "hK3DjKiG+EipqG1JWd8lHYgMYbCjiX8wrXXBd6WDK4g="}</script>
+<script>
+(function(){
+  var sample = JSON.parse(document.getElementById('sample').textContent);
+  var box = document.getElementById('receipt');
+  var pub = document.getElementById('pub');
+  var out = document.getElementById('result');
+
+  function reset(){
+    box.value = JSON.stringify(sample.receipt, null, 2);
+    pub.value = sample.public_key;
+    out.innerHTML = '<div class="verdict idle">Press Verify receipt to check the signature.</div>';
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  function show(ok, headline, parts){
+    out.innerHTML = '<div class="verdict ' + (ok ? 'ok' : 'bad') + '">' + esc(headline) + '</div>' + (parts || '');
+  }
+
+  document.getElementById('verify').onclick = function(){
+    var receipt;
+    try { receipt = JSON.parse(box.value); }
+    catch(e){ show(false, 'That is not valid JSON.', '<p class="detail">' + esc(e.message) + '</p>'); return; }
+    fetch('/v1/verify', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({receipt: receipt, public_key: pub.value.trim() || undefined})})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.error){ show(false, 'Could not check this receipt.', '<p class="detail">' + esc(d.error) + '</p>'); return; }
+      var dna = (receipt.scope_of_claim && receipt.scope_of_claim.does_not_assert) || [];
+      var html = '<dl class="detail"><dt>Recorded outcome</dt><dd>' + esc(d.status || 'unknown') + '</dd>';
+      if (!d.valid && d.reasons && d.reasons.length){
+        html += '<dt>Why it failed</dt><dd>' + d.reasons.map(esc).join('; ') + '</dd>';
+      }
+      if (d.valid && dna.length){
+        html += '<dt>This receipt does not claim</dt><dd><ul>' + dna.map(function(x){return '<li>'+esc(x)+'</li>';}).join('') + '</ul></dd>';
+      }
+      html += '</dl>';
+      show(d.valid, d.valid ? 'Signature valid' : 'Signature does not match', html);
+    })
+    .catch(function(){ show(false, 'Could not reach the server.', '<p class="detail">Check your connection and try again.</p>'); });
+  };
+
+  document.getElementById('tamper').onclick = function(){
+    try {
+      var r = JSON.parse(box.value);
+      r.postcondition_result = (r.postcondition_result === 'FAIL') ? 'PASS' : 'FAIL';
+      box.value = JSON.stringify(r, null, 2);
+      out.innerHTML = '<div class="verdict idle">postcondition_result was changed. Press Verify receipt.</div>';
+    } catch(e){ show(false, 'That is not valid JSON.', ''); }
+  };
+  document.getElementById('reset').onclick = reset;
+  reset();
+})();
+</script>
+</body>
+</html>

@@ -63,7 +63,15 @@ def _digest(obj) -> str:
     return "sha256:" + hashlib.sha256(canonical).hexdigest()
 
 
-def run(reference: str, amount_kobo: int | None, client: PaystackClient, private_key: str, signer_key_id: str) -> dict:
+def run(
+    reference: str,
+    amount_kobo: int | None,
+    client: PaystackClient,
+    private_key: str,
+    signer_key_id: str,
+    supersedes: str | None = None,
+    poll_seconds: int = 30,
+) -> dict:
     # --- SNAPSHOT: fresh authoritative pre-state read ---
     t0 = time.time()
     pre_state = client.verify_transaction(reference)
@@ -85,6 +93,7 @@ def run(reference: str, amount_kobo: int | None, client: PaystackClient, private
             refund_data=None,
             private_key=private_key,
             signer_key_id=signer_key_id,
+            supersedes=supersedes,
             asserts=[f"transaction {reference} status was '{pre_data.get('status')}', which is not in the refundable set {sorted(REFUNDABLE_PRE_STATES)}, at pre-state read"],
             does_not_assert=["that a refund was attempted"],
         )
@@ -113,6 +122,7 @@ def run(reference: str, amount_kobo: int | None, client: PaystackClient, private
                 refund_data={"error": str(exc)},
                 private_key=private_key,
                 signer_key_id=signer_key_id,
+            supersedes=supersedes,
                 asserts=[f"Paystack rejected the refund submission: {exc}"],
                 does_not_assert=["that any refund was created"],
             )
@@ -126,7 +136,7 @@ def run(reference: str, amount_kobo: int | None, client: PaystackClient, private
     refund_id = refund_data.get("id")
     final_refund_state = refund_data
     freshness_bound_seconds = 30
-    deadline = t0 + freshness_bound_seconds
+    deadline = time.time() + poll_seconds
     while refund_id and final_refund_state.get("status") in IN_PROGRESS and time.time() < deadline:
         time.sleep(2)
         final_refund_state = client.fetch_refund(refund_id).get("data", final_refund_state)
@@ -158,6 +168,7 @@ def run(reference: str, amount_kobo: int | None, client: PaystackClient, private
         refund_data=final_refund_state,
         private_key=private_key,
         signer_key_id=signer_key_id,
+        supersedes=supersedes,
         asserts=[
             f"Paystack transaction {reference} was at status 'success' before refund submission",
             f"refund {idempotency_note.replace('_', ' ')}: refund id {refund_id}, final status '{refund_status}'",
@@ -185,6 +196,7 @@ def _build_and_seal(
     asserts: list[str],
     does_not_assert: list[str],
     post_commitment: str | None = None,
+    supersedes: str | None = None,
 ) -> dict:
     receipt = {
         "receipt_version": "1.0",
@@ -208,6 +220,8 @@ def _build_and_seal(
         "scope_of_claim": {"asserts": asserts, "does_not_assert": does_not_assert},
         "status": status,
     }
+    if supersedes:
+        receipt["supersedes"] = supersedes
     return seal_receipt(receipt, private_key, signer_key_id)
 
 

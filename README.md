@@ -122,6 +122,14 @@ worked examples.
 - That a signature check right now means the underlying fact is
   *still* true (see `--freshness` handling in `pcheck inspect`)
 
+## Hosted service
+
+`service/` is a small Flask app: a landing page with a live verifier, a public `POST /v1/verify`,
+published signing keys at `/v1/keys`, authenticated endpoints that run the Paystack connector and
+re-check `UNKNOWN_OUTCOME` receipts (issuing a new receipt that `supersedes` the old one), and a
+Paystack webhook receiver. See `service/README.md` for running it, deploying it on Railway, and an
+exact list of what is and is not verified yet.
+
 ## Roadmap
 
 1. **Paystack test-mode refund connector** — `connectors/`. First
