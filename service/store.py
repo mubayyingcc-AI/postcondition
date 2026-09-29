@@ -7,10 +7,11 @@ Two implementations behind one small interface:
   PostgresStore  - used on Railway (DATABASE_URL=postgres://...).
 
 HONESTY NOTE: SQLiteStore is exercised by tests/test_service.py.
-PostgresStore could NOT be run where this was written (no Postgres, no
-psycopg in that sandbox). It is deliberately tiny and uses plain SQL so
-it is easy to review, but treat the first Railway deploy as its first
-real test.
+PostgresStore's first real run (Railway, 2026-09-29) crash-looped on a
+genuine concurrency bug between gunicorn workers racing on schema
+setup — see the advisory-lock comment in PostgresStore.__init__ for
+what broke and the fix. That is exactly the kind of thing a live
+deploy finds that a sandbox without Postgres cannot.
 """
 
 from __future__ import annotations
@@ -93,31 +94,45 @@ class PostgresStore:
 
         self._psycopg = psycopg
         self._url = url
+        # Multiple gunicorn workers construct a PostgresStore concurrently on
+        # boot. Postgres's CREATE ... IF NOT EXISTS is not safe against a
+        # genuine race between two sessions — both can pass the "not exists"
+        # check before either commits, and the loser gets a UniqueViolation on
+        # the catalog insert. Confirmed live on first deploy (2 workers, one
+        # crashed with `duplicate key value violates unique constraint
+        # "pg_class_relname_nsp_index"`). An advisory lock serializes schema
+        # setup: everyone but the first worker just waits, then finds the
+        # schema already there and does nothing.
+        LOCK_KEY = 8892310147  # arbitrary constant, unique to this app's schema-init lock
         with self._connect() as conn:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS receipts (
-                    seq BIGSERIAL PRIMARY KEY,
-                    receipt_id TEXT UNIQUE NOT NULL,
-                    reference TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    supersedes TEXT,
-                    receipt_json JSONB NOT NULL,
-                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            conn.execute("SELECT pg_advisory_lock(%s)", (LOCK_KEY,))
+            try:
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS receipts (
+                        seq BIGSERIAL PRIMARY KEY,
+                        receipt_id TEXT UNIQUE NOT NULL,
+                        reference TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        supersedes TEXT,
+                        receipt_json JSONB NOT NULL,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    )
+                    """
                 )
-                """
-            )
-            conn.execute("CREATE INDEX IF NOT EXISTS receipts_ref ON receipts(reference)")
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS events (
-                    seq BIGSERIAL PRIMARY KEY,
-                    signature_valid BOOLEAN NOT NULL,
-                    body TEXT NOT NULL,
-                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                conn.execute("CREATE INDEX IF NOT EXISTS receipts_ref ON receipts(reference)")
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS events (
+                        seq BIGSERIAL PRIMARY KEY,
+                        signature_valid BOOLEAN NOT NULL,
+                        body TEXT NOT NULL,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    )
+                    """
                 )
-                """
-            )
+            finally:
+                conn.execute("SELECT pg_advisory_unlock(%s)", (LOCK_KEY,))
 
     def _connect(self):
         return self._psycopg.connect(self._url, autocommit=True)
