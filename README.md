@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="service/static/logo-lockup.png" alt="Postcondition" width="420">
+</p>
+
 # Postcondition
 
 **We don't sign what an agent claims. We check it against what an authoritative system actually confirms.**

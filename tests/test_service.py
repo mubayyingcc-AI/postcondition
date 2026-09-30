@@ -77,6 +77,18 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertIn(b"Did the agent", page.data)
 
+    def test_logo_assets_are_served(self):
+        for name in ("logo-icon.png", "logo-lockup.png"):
+            resp = self.c.get(f"/{name}")
+            self.assertEqual(resp.status_code, 200, name)
+            self.assertTrue(resp.data.startswith(b"\x89PNG"), name)
+
+    def test_static_route_does_not_serve_arbitrary_files(self):
+        # must stay an allowlist, not an open directory listing of service/static/
+        self.assertEqual(self.c.get("/app.py").status_code, 404)
+        self.assertEqual(self.c.get("/../service/app.py").status_code, 404)
+        self.assertEqual(self.c.get("/nonexistent.png").status_code, 404)
+
     def test_keys_endpoint_publishes_public_key_only(self):
         body = self.c.get("/v1/keys").get_json()
         self.assertEqual(body["keys"][0]["public_key"], public_from_private(self.priv))

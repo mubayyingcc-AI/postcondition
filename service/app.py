@@ -112,6 +112,15 @@ def create_app(
     def index():
         return send_from_directory(STATIC_DIR, "index.html")
 
+    @app.get("/<path:filename>")
+    def static_asset(filename: str):
+        # Narrow on purpose: only the specific logo files the page actually
+        # references, not an open directory listing of service/static/.
+        allowed = {"logo.png", "logo-mark.png", "logo-icon.png", "logo-lockup.png", "logo-full.png"}
+        if filename not in allowed:
+            return jsonify({"error": "not found"}), 404
+        return send_from_directory(STATIC_DIR, filename)
+
     @app.get("/healthz")
     def healthz():
         return jsonify({"ok": True})
