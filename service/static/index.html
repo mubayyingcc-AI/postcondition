@@ -7,8 +7,13 @@
 <meta name="description" content="Signed receipts that record what the system of record actually confirmed after an AI agent acted, and what they do not prove.">
 <style>
 :root{
-  --paper:#F2F4F7; --panel:#FFFFFF; --ink:#14213D; --muted:#5B6673; --line:#D5DAE1;
-  --ok:#1B7A4B; --ok-bg:#E4F3EA; --bad:#B3261E; --bad-bg:#FBE9E7; --focus:#2D5BFF;
+  /* Cool indigo/cyan palette: Postcondition is a logic term (a fact proven
+     true after an action), so the accent is the cyan of a terminal check-
+     mark, not a warm "friendly SaaS" blue. Deep indigo for ink/headlines,
+     electric cyan for anything that means "verified" or interactive. */
+  --paper:#EAF0F6; --panel:#FFFFFF; --ink:#0B1E3D; --muted:#516276; --line:#C7D4E0;
+  --ok:#0E8F7B; --ok-bg:#DFF5F0; --bad:#B3261E; --bad-bg:#FBE9E7; --focus:#0EA5E9;
+  --cyan:#0EA5E9; --cyan-deep:#0B1E3D;
   --serif:Georgia,"Times New Roman",serif;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -21,8 +26,10 @@ a{color:var(--ink)}
 .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
 header{padding:20px 0;border-bottom:1px solid var(--line)}
 header .wrap{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
-.mark{font:700 1.25rem var(--serif);letter-spacing:.01em;text-decoration:none}
-nav a{margin-left:20px;font-size:.95rem}
+.mark{font:700 1.25rem var(--serif);letter-spacing:.01em;text-decoration:none;display:inline-flex;align-items:center;gap:9px}
+.mark .dot{width:10px;height:10px;border-radius:2px;background:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb, var(--cyan) 22%, transparent);flex:none}
+nav a{margin-left:20px;font-size:.95rem;text-decoration:none;border-bottom:1px solid transparent}
+nav a:hover{border-bottom-color:var(--cyan)}
 h1{font:700 clamp(2rem,5vw,3.4rem)/1.08 var(--serif);margin:48px 0 16px;max-width:16em}
 .lede{font-size:1.1rem;color:var(--muted);max-width:38em;margin:0 0 32px}
 .demo{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
@@ -33,9 +40,10 @@ textarea,input{width:100%;font:.8rem/1.45 var(--mono);color:var(--ink);border:1p
 textarea{height:360px;resize:vertical}
 input{margin-bottom:14px}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-button{font:600 .95rem var(--sans);border-radius:4px;padding:10px 16px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff}
+button{font:600 .95rem var(--sans);border-radius:4px;padding:10px 16px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff;transition:background .15s,border-color .15s}
 button.secondary{background:transparent;color:var(--ink)}
-button:hover{filter:brightness(1.15)}
+button:hover{background:var(--cyan);border-color:var(--cyan);color:var(--cyan-deep)}
+button.secondary:hover{background:color-mix(in srgb, var(--cyan) 12%, transparent)}
 #result{min-height:220px}
 .verdict{border-radius:4px;padding:14px 16px;font:700 1.25rem var(--serif)}
 .verdict.ok{background:var(--ok-bg);color:var(--ok)}
@@ -51,7 +59,7 @@ h2{font:700 1.6rem/1.2 var(--serif);margin:0 0 14px}
 @media (max-width:820px){.two{grid-template-columns:1fr}}
 .outcomes{margin:0;padding:0;list-style:none;font-size:.95rem}
 .outcomes li{padding:8px 0;border-top:1px solid var(--line)}
-.outcomes code{font:600 .8rem var(--mono)}
+.outcomes code{font:600 .8rem var(--mono);color:var(--cyan-deep);background:color-mix(in srgb, var(--cyan) 14%, white);padding:2px 6px;border-radius:3px}
 .outcomes span{color:var(--muted)}
 .not li{margin-bottom:6px}
 footer{margin-top:64px;padding:24px 0 40px;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
@@ -60,7 +68,7 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:4px;paddi
 </head>
 <body>
 <header><div class="wrap">
-  <a class="mark" href="/">Postcondition</a>
+  <a class="mark" href="/"><span class="dot" aria-hidden="true"></span>Postcondition</a>
   <nav><a href="#outcomes">Outcomes</a><a href="#limits">Limits</a><a href="#api">API</a><a href="https://github.com/mubayyingcc-AI/postcondition">Source</a></nav>
 </div></header>
 
